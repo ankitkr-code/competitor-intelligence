@@ -199,6 +199,12 @@ export default function CompetitorDetailPage() {
           </p>
         </div>
         <Link
+          href={`/battlecards/${competitor.id}`}
+          className="shrink-0 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium"
+        >
+          Battlecard
+        </Link>
+        <Link
           href={`/competitors/${competitor.id}/edit`}
           className="shrink-0 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium"
         >

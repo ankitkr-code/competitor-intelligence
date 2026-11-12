@@ -1,0 +1,19 @@
+Competitor Intelligence - Phase 8 - Dashboard / analytics
+Split pack: Phase 8 only, from Phase 1 to Phase 8 (last).
+Apply in order 1 -> 8. Extract over your project folder,
+choose "Replace the files in the destination" for all.
+Everything else in your project is left as it is -
+this pack contains ONLY this phase's files, nothing deleted.
+
+7 files differ vs Phase 7: NEW (3), MODIFIED (4), DELETED (0)
+
+NEW (3):
+  backend/src/controllers/dashboardController.ts
+  backend/src/routes/dashboard.ts
+  frontend/services/dashboard.ts
+
+MODIFIED (4):
+  README.md
+  backend/src/app.ts
+  frontend/app/(dashboard)/dashboard/page.tsx
+  frontend/types/index.ts

@@ -404,9 +404,115 @@ not automatic after a scan, because each run costs API credits.
   credits, so the user decides when to spend them. Phase 9 automates it
   as a background job."
 
-## Next step: Phase 7
+## Phase 7: Battlecards (sales-ready pages per competitor)
 
-Battlecards — generate a sales battlecard per competitor from its latest
-analysis and changes (overview, positioning, pricing, features, strengths,
-weaknesses, recent changes, complaints, talking points, objection
-handling), with edit, version history, and PDF export.
+A battlecard is a one-page summary a salesperson reads before a call,
+built only from data the system already holds — never typed up by hand,
+never invented (PRD section 12). Open **Battlecards** from the dashboard
+or a competitor's page, and press **Generate** (needs at least one scan
+first).
+
+**What's on it, in order:** overview, positioning, pricing (plans from
+the latest pricing snapshot, with the source URL and capture date),
+product features (latest changelog entries), strengths, weaknesses,
+recent changes, customer complaints (reviews rated 2 or below),
+talking points, objection handling, sources, and the last-updated date.
+
+**Verified vs AI — kept apart on purpose.** Pricing, features, recent
+changes, complaints, and sources are verified data from scans. They are
+read-only on the battlecard: the only way they change is a new scan and
+**Regenerate**. Strengths, weaknesses, talking points, objection
+handling, and the positioning line come from the latest AI analysis
+(Phase 6) and are labelled **AI-generated** on the page. If no analysis
+exists yet, those sections stay empty with a note to run **Analyse
+latest changes** first, then Regenerate — the battlecard never fills
+them in from nothing.
+
+**Edit, versions, PDF.** **Edit** changes only the AI-written sections
+(overview, positioning, strengths, weaknesses, talking points,
+objection handling). Every generate, regenerate, and edit bumps the
+version number and freezes the previous content, so **Previous
+versions** always shows exactly what the battlecard said at the time.
+**Print / PDF** opens the browser print dialog — choose "Save as PDF"
+there; the buttons and navigation are hidden from the printout.
+
+**Endpoints:** `POST /api/competitors/:id/battlecard/generate` (409 if
+one already exists), `POST /:id/battlecard/regenerate`,
+`PUT /:id/battlecard` (editable sections only — pricing and the other
+verified sections are rejected with a 400),
+`GET /:id/battlecard`, `GET /:id/battlecard/versions`,
+`GET /:id/battlecard/versions/:version`, and `GET /api/battlecards`
+(the organization-wide list). All of them require sign-in and are
+scoped to the user's organization — another organization's battlecard
+is a 404, not a leak.
+
+**Live-tested 2026-11-11: 42/42 checks passed** (composer unit checks:
+exact plans/features/complaints/AI sections, empty AI sections with no
+analysis; HTTP: generate 201 then 409, edit → v2 with the old version
+frozen, regenerate → v3 picking up a new change, verified fields not
+editable, cross-org 404, unauthenticated 401).
+
+## How to explain Phase 7 in an internship review
+
+- "A battlecard is assembled from data we already verified — snapshots,
+  detected changes, and the last AI analysis. Nothing on it is typed in
+  or invented."
+- "Verified sections are read-only. If sales wants the pricing line to
+  change, they rescan — they can't type a fake price into the card."
+- "Every save is a new version and the old one is frozen, so you can
+  always prove what the battlecard said on the day of a call."
+
+## Next step: Phase 8
+
+Full dashboard and analytics — the home page becomes a real overview
+(changes over time, most active competitors, price-move counts) instead
+of the minimal placeholder it is now.
+
+## Phase 8: Dashboard and analytics (the home page, finished)
+
+The dashboard is no longer a status page — it is a real overview of the
+workspace, and every number on it is a live count over the signed-in
+user's own data (PRD section 24, MVP). Nothing is faked or sampled: an
+empty workspace honestly shows zeros and empty states.
+
+**What's on it:**
+
+- **Stat cards** — competitors (monitoring vs paused), changes in the
+  last 7 days (with totals), high-priority changes in the last 7 days
+  (price rises, removed plans, bad reviews), battlecards and AI analyses.
+- **Changes over time** — a 14-day bar chart of detected changes per
+  day, built with plain divs (no chart library). Quiet days show zero.
+- **Most active competitors** — ranked by detected-change count, with
+  the latest change date, linking to each competitor.
+- **Recent price moves** — the newest price increases and decreases.
+- **Recent activity** — the 8 newest changes, with a link to the full
+  intelligence feed.
+- **Scan health** — per competitor: monitoring on/paused, when it was
+  last scanned, whether the last scan succeeded, failed, or was blocked,
+  and how many snapshots it has.
+
+**Endpoint:** `GET /api/dashboard/overview` — one call returning stats,
+the 14-day series, top competitors, price moves, recent changes, and
+scan health. It requires sign-in and is scoped to the user's
+organization (another organization's data never appears).
+
+**Live-tested 2026-11-11: 28/28 checks passed** (exact counts, 14-day
+buckets including zero days, 7-day windows excluding a 10-day-old
+change, top-competitor order, price-moves-only list, scan-health
+statuses, cross-org isolation, an empty organization returning honest
+zeros, unauthenticated 401).
+
+## How to explain Phase 8 in an internship review
+
+- "The dashboard is one aggregation endpoint. Every card and chart on
+  the page is a MongoDB count or group-by over the user's own data —
+  there is no mock data anywhere in the app."
+- "The 14-day chart fills quiet days with zero instead of hiding them,
+  so a flat week reads as a flat week, not as missing data."
+
+## Next step: Phase 9
+
+Background jobs with Redis + BullMQ — scheduled scans (hourly/daily/
+weekly per competitor), automatic change detection and AI analysis
+after each scan, and notifications, so nobody has to press Scan now by
+hand.

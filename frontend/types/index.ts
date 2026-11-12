@@ -143,3 +143,122 @@ export type Analysis = {
   createdAt: string;
   updatedAt: string;
 };
+
+// Phase 7: a sales battlecard for one competitor. Pricing, features,
+// recent changes, complaints, and sources are verified data from scans;
+// strengths, weaknesses, talking points, and objection handling come
+// from the latest AI analysis (aiSections names them).
+export type BattlecardPlan = {
+  name: string;
+  price: number | null;
+  currency: string | null;
+  interval: string;
+  raw: string;
+};
+
+export type BattlecardFeature = { title: string; date: string | null };
+
+export type BattlecardRecentChange = {
+  category: ChangeCategory;
+  title: string;
+  significance: ChangeSignificance;
+  detectedAt: string;
+  sourceUrl: string;
+};
+
+export type BattlecardComplaint = { text: string; rating: number | null };
+
+export type BattlecardSource = { label: string; url: string };
+
+export type Battlecard = {
+  id: string;
+  organizationId: string;
+  competitorId: string;
+  competitorName?: string;
+  version: number;
+  generatedFromAnalysisId: string | null;
+  overview: string;
+  positioning: string;
+  pricing: BattlecardPlan[];
+  pricingSourceUrl?: string;
+  pricingSnapshotDate?: string;
+  features: BattlecardFeature[];
+  strengths: string[];
+  weaknesses: string[];
+  recentChanges: BattlecardRecentChange[];
+  complaints: BattlecardComplaint[];
+  talkingPoints: string[];
+  objectionHandling: string[];
+  sources: BattlecardSource[];
+  aiSections: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type BattlecardListItem = {
+  competitorId: string;
+  competitorName?: string;
+  websiteUrl?: string;
+  version: number;
+  updatedAt: string;
+};
+
+export type BattlecardVersionInfo = { version: number; createdAt: string };
+
+export type BattlecardVersionDetail = {
+  version: number;
+  createdAt: string;
+  content: Record<string, unknown>;
+};
+
+// Phase 8: the dashboard overview — every number is a real count or
+// aggregation over the signed-in user's own organization. No sample data.
+export type DashboardStats = {
+  competitors: number;
+  monitoringEnabled: number;
+  monitoringPaused: number;
+  snapshots: number;
+  changes: number;
+  changesLast7Days: number;
+  highChangesLast7Days: number;
+  battlecards: number;
+  analyses: number;
+};
+
+export type DashboardDayCount = { date: string; count: number };
+
+export type DashboardTopCompetitor = {
+  competitorId: string;
+  competitorName?: string;
+  changeCount: number;
+  latestChangeAt: string;
+};
+
+export type DashboardChangeItem = {
+  id: string;
+  competitorId: string;
+  competitorName?: string;
+  category: ChangeCategory;
+  title: string;
+  significance: ChangeSignificance;
+  detectedAt: string;
+  sourceUrl: string;
+};
+
+export type DashboardScanHealth = {
+  competitorId: string;
+  competitorName: string;
+  monitoringEnabled: boolean;
+  lastScanAt: string | null;
+  lastScanStatus: string | null;
+  totalSnapshots: number;
+};
+
+export type DashboardOverview = {
+  stats: DashboardStats;
+  changesPerDay: DashboardDayCount[];
+  topCompetitors: DashboardTopCompetitor[];
+  priceMoves: DashboardChangeItem[];
+  recentChanges: DashboardChangeItem[];
+  scanHealth: DashboardScanHealth[];
+};

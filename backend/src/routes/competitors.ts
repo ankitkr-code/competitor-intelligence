@@ -10,6 +10,14 @@ import { requireAuth } from "../middleware/auth";
 import { triggerScan, listSnapshots } from "../controllers/scanController";
 import { listCompetitorChanges } from "../controllers/changeController";
 import { analyzeCompetitor, listAnalyses, getAnalysis } from "../controllers/analysisController";
+import {
+  generateBattlecard,
+  regenerateBattlecard,
+  updateBattlecard,
+  getBattlecard,
+  listBattlecardVersions,
+  getBattlecardVersion,
+} from "../controllers/battlecardController";
 
 const router = Router();
 
@@ -34,5 +42,13 @@ router.get("/:id/changes", listCompetitorChanges);
 router.post("/:id/analyze", analyzeCompetitor);
 router.get("/:id/analyses", listAnalyses);
 router.get("/:id/analyses/:analysisId", getAnalysis);
+
+// Phase 7: battlecards — generate, regenerate, edit, read, versions.
+router.post("/:id/battlecard/generate", generateBattlecard);
+router.post("/:id/battlecard/regenerate", regenerateBattlecard);
+router.put("/:id/battlecard", updateBattlecard);
+router.get("/:id/battlecard", getBattlecard);
+router.get("/:id/battlecard/versions", listBattlecardVersions);
+router.get("/:id/battlecard/versions/:version", getBattlecardVersion);
 
 export default router;
