@@ -7,7 +7,7 @@ import {
   deleteCompetitor,
 } from "../controllers/competitorController";
 import { requireAuth } from "../middleware/auth";
-import { triggerScan, listSnapshots } from "../controllers/scanController";
+import { triggerScan, listSnapshots, listScanJobs } from "../controllers/scanController";
 import { listCompetitorChanges } from "../controllers/changeController";
 import { analyzeCompetitor, listAnalyses, getAnalysis } from "../controllers/analysisController";
 import {
@@ -32,7 +32,10 @@ router.patch("/:id", updateCompetitor);
 router.delete("/:id", deleteCompetitor);
 
 // Phase 4: manual scan trigger and snapshot history for one competitor.
+// Phase 9: POST /scan now enqueues a background job (202) instead of
+// scraping in the request; GET /scan-jobs lists its job history.
 router.post("/:id/scan", triggerScan);
+router.get("/:id/scan-jobs", listScanJobs);
 router.get("/:id/snapshots", listSnapshots);
 
 // Phase 5: detected changes for one competitor.

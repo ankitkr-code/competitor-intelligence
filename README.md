@@ -510,9 +510,90 @@ zeros, unauthenticated 401).
 - "The 14-day chart fills quiet days with zero instead of hiding them,
   so a flat week reads as a flat week, not as missing data."
 
-## Next step: Phase 9
+## Phase 9: Background jobs with Redis + BullMQ (finished)
 
-Background jobs with Redis + BullMQ — scheduled scans (hourly/daily/
-weekly per competitor), automatic change detection and AI analysis
-after each scan, and notifications, so nobody has to press Scan now by
-hand.
+Scans no longer run inside the API request. Pressing **Scan now**
+enqueues a job on the `scan-queue` (BullMQ, backed by Redis); a worker
+picks it up, runs the Phase 4 scanner (which also does Phase 5 change
+detection), and records the outcome. Scheduled scans run on their own:
+one repeatable job per monitored competitor, repeating every hour /
+day / week from that competitor's `monitoringFrequency`.
+
+**What was built:**
+
+- **Queue** (`backend/src/queues/scanQueue.ts`) — `enqueueScan`,
+  `scheduleCompetitor`, `unscheduleCompetitor`, `resyncSchedules`.
+  Manual scans are de-duplicated: if a scan for the same competitor
+  is already queued or running, the existing job is returned instead
+  of a second one. Jobs retry 3 times with exponential backoff.
+- **Worker** (`backend/src/workers/scanWorker.ts`, entry
+  `backend/src/worker.ts`, `npm run worker`) — loads the competitor
+  fresh from MongoDB (org-scoped), scans it, updates the ScanJob
+  record and the competitor's `lastScannedAt` / `lastScanStatus`.
+  In development the API process also runs the worker
+  (`SCAN_WORKER_IN_PROCESS=true`, the default), so one `npm run dev`
+  is enough; in production set it to `false` and run `npm run worker`
+  in a separate process.
+- **ScanJob model** (`backend/src/models/ScanJob.ts`) — the durable
+  audit trail in MongoDB (Redis is volatile): trigger
+  (`manual` | `scheduled`), status
+  (`queued` | `active` | `completed` | `failed`), scan summary or
+  error, attempts, queued/started/finished times. The worker creates
+  the record for scheduled runs too (repeatable jobs bypass the
+  enqueue endpoint), so the scan-jobs list shows every run, manual
+  or scheduled.
+- **Endpoints** — `POST /api/competitors/:id/scan` now returns **202**
+  with `{ queued: true, jobId, scanJobId }`; `GET /api/jobs/:jobId`
+  and `GET /api/jobs` (org-scoped, with live queue counts and Redis
+  status); `GET /api/competitors/:id/scan-jobs` (recent jobs for one
+  competitor). `GET /api/health` now also reports Redis status.
+- **Scheduling rules** — creating a competitor schedules its
+  repeatable job; changing its frequency or pausing it re-creates /
+  removes the job; deleting it removes the job; server/worker startup
+  re-syncs all schedules. Pausing stops *scheduled* scans only —
+  a manual Scan now still works.
+- **Frontend** — the competitor detail page polls the job until it
+  completes or fails (2-minute timeout), then reloads snapshots and
+  changes; it shows the schedule (frequency, paused/on, last scanned)
+  and a Recent scan jobs list. `services/jobs.ts` is new.
+
+**Graceful degradation (deliberate):** Redis is optional. If it is
+down, the app still starts, `/api/health` reports Redis disconnected,
+scheduled scans are paused, and a manual scan runs synchronously in
+the request (Phase 4 behaviour) and still writes a ScanJob record.
+Nothing hard-fails for lack of Redis. Queue calls time out after 5
+seconds, so a dead Redis makes a scan fall back in seconds instead of
+hanging the request forever (BullMQ's connections retry indefinitely
+on their own).
+
+**What is NOT in Phase 9:** automatic AI analysis after each scan
+(analysis stays manual, Phase 6 — it costs Groq/OpenAI credits on
+every run), and notifications (no email/Slack alerts yet). Those are
+not part of this phase.
+
+**Run it:** install Redis and start it (`redis-server`, port 6379),
+set `REDIS_URL` in `backend/.env` (see `.env.example`), then
+`npm run dev` in `backend/` (worker runs in-process) and `npm run dev`
+in `frontend/`. For a separate worker: set
+`SCAN_WORKER_IN_PROCESS=false` on the API server and run
+`npm run worker` in a third terminal.
+
+## How to explain Phase 9 in an internship review
+
+- "The API never scrapes a page directly any more — it enqueues a
+  BullMQ job and returns 202, and a worker does the scan. That is
+  what lets the same code run scheduled scans every hour without
+  anyone pressing a button."
+- "Redis is a cache/queue, not the source of truth: every job also
+  has a ScanJob record in MongoDB, so the history survives a Redis
+  restart, and if Redis is down the scan falls back to running
+  synchronously instead of failing."
+- "A repeatable job is created per competitor from its
+  monitoringFrequency, and changing the frequency or pausing removes
+  and re-creates it — so a competitor can never have two schedules."
+
+## Next step: Phase 10
+
+Notion / Salesforce integrations — push battlecards and detected
+changes into the tools sales teams already use, so the intelligence
+leaves this app instead of living only inside it.

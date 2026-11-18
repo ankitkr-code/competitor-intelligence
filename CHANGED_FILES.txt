@@ -1,19 +1,45 @@
-Competitor Intelligence - Phase 8 - Dashboard / analytics
-Split pack: Phase 8 only, from Phase 1 to Phase 8 (last).
-Apply in order 1 -> 8. Extract over your project folder,
+Competitor Intelligence - Phase 9 - Background jobs (Redis + BullMQ)
+Split pack: Phase 9 only, from Phase 1 to Phase 9.
+Apply in order 1 -> 9. Extract over your project folder,
 choose "Replace the files in the destination" for all.
 Everything else in your project is left as it is -
 this pack contains ONLY this phase's files, nothing deleted.
 
-7 files differ vs Phase 7: NEW (3), MODIFIED (4), DELETED (0)
+After applying: install the new dependencies and start Redis, then restart both servers:
+  cd backend && npm install
+  redis-server   (or: start Redis however you installed it; port 6379)
+  npm run dev    (backend — the scan worker runs inside it by default)
+  cd ../frontend && npm run dev
+For a separate worker instead: set SCAN_WORKER_IN_PROCESS=false in backend/.env
+and run `npm run worker` in a third terminal.
+Redis is optional — without it the app still starts and manual scans run
+synchronously; scheduled scans are paused until Redis is back.
 
-NEW (3):
-  backend/src/controllers/dashboardController.ts
-  backend/src/routes/dashboard.ts
-  frontend/services/dashboard.ts
+23 files differ vs Phase 8: NEW (8), MODIFIED (15), DELETED (0)
 
-MODIFIED (4):
+NEW (8):
+  backend/src/config/redis.ts
+  backend/src/controllers/jobController.ts
+  backend/src/models/ScanJob.ts
+  backend/src/queues/scanQueue.ts
+  backend/src/routes/jobs.ts
+  backend/src/worker.ts
+  backend/src/workers/scanWorker.ts
+  frontend/services/jobs.ts
+
+MODIFIED (15):
   README.md
+  backend/.env.example
+  backend/package-lock.json
+  backend/package.json
   backend/src/app.ts
-  frontend/app/(dashboard)/dashboard/page.tsx
+  backend/src/config/env.ts
+  backend/src/controllers/competitorController.ts
+  backend/src/controllers/scanController.ts
+  backend/src/models/Competitor.ts
+  backend/src/routes/competitors.ts
+  backend/src/routes/health.ts
+  backend/src/server.ts
+  frontend/app/(dashboard)/competitors/[id]/page.tsx
+  frontend/services/scans.ts
   frontend/types/index.ts

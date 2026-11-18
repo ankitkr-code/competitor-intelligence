@@ -24,5 +24,14 @@ export const env = {
   // so tests can set it per-run; these fields document the setting.
   openaiApiKey: process.env.OPENAI_API_KEY || "",
   openaiModel: process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini",
+  // Phase 9: Redis + BullMQ. Redis is optional — without it the app still
+  // starts and manual scans run synchronously (Phase 4 behaviour); with
+  // it, scans run as background jobs and repeat on schedule. The worker
+  // runs in the API process by default in development
+  // (SCAN_WORKER_IN_PROCESS=true); in production set it to "false" and
+  // run the separate worker with `npm run worker` instead.
+  redisUrl: process.env.REDIS_URL?.trim() || "redis://127.0.0.1:6379",
+  scanWorkerInProcess: process.env.SCAN_WORKER_IN_PROCESS !== "false",
+  scanWorkerConcurrency: Number(process.env.SCAN_WORKER_CONCURRENCY || 2),
   isProduction: process.env.NODE_ENV === "production",
 };

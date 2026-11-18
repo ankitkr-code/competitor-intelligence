@@ -5,10 +5,11 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { getCompetitor } from "@/services/competitors";
 import { listSnapshots, triggerScan } from "@/services/scans";
+import { getScanJob, listCompetitorScanJobs } from "@/services/jobs";
 import { listCompetitorChanges } from "@/services/changes";
 import { analyzeCompetitor, listAnalyses } from "@/services/analysis";
 import ChangeCard, { categoryLabel } from "@/components/ChangeCard";
-import type { Analysis, ChangeEvent, Competitor, ScanSummary, Snapshot } from "@/types";
+import type { Analysis, ChangeEvent, Competitor, ScanJob, ScanSummary, Snapshot } from "@/types";
 
 function sourceLabel(type: Snapshot["sourceType"]): string {
   return { pricing: "Pricing", changelog: "Changelog", careers: "Careers", reviews: "Reviews" }[type];
@@ -85,6 +86,8 @@ export default function CompetitorDetailPage() {
   const [scanning, setScanning] = useState(false);
   const [scanResult, setScanResult] = useState<ScanSummary | null>(null);
   const [scanError, setScanError] = useState("");
+  const [scanJobStatus, setScanJobStatus] = useState("");
+  const [scanJobs, setScanJobs] = useState<ScanJob[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState("");
   const [analyzeMessage, setAnalyzeMessage] = useState("");
@@ -103,11 +106,15 @@ export default function CompetitorDetailPage() {
     setSelectedAnalysisId((current) => current ?? (list.length > 0 ? list[0].id : null));
   }, [id]);
 
+  const loadScanJobs = useCallback(async () => {
+    setScanJobs(await listCompetitorScanJobs(id, 10));
+  }, [id]);
+
   useEffect(() => {
     getCompetitor(id)
       .then((c) => {
         setCompetitor(c);
-        return Promise.all([loadSnapshots(), loadChanges(), loadAnalyses()]);
+        return Promise.all([loadSnapshots(), loadChanges(), loadAnalyses(), loadScanJobs()]);
       })
       .catch((err) => {
         if (err instanceof Error && /not signed in/i.test(err.message)) {
@@ -116,16 +123,54 @@ export default function CompetitorDetailPage() {
         }
         setLoadError(err instanceof Error ? err.message : "Could not load competitor");
       });
-  }, [id, router, loadSnapshots, loadChanges, loadAnalyses]);
+  }, [id, router, loadSnapshots, loadChanges, loadAnalyses, loadScanJobs]);
 
   async function handleScan() {
     setScanning(true);
     setScanError("");
     setScanResult(null);
+    setScanJobStatus("");
     try {
-      const summary = await triggerScan(id);
-      setScanResult(summary);
-      await Promise.all([loadSnapshots(), loadChanges()]);
+      const result = await triggerScan(id);
+      // Redis down: the scan already ran synchronously in the request.
+      if (!result.queued && result.scan) {
+        setScanResult(result.scan);
+        setScanJobStatus("Completed synchronously (Redis was down)");
+        await Promise.all([loadSnapshots(), loadChanges(), loadScanJobs()]);
+        return;
+      }
+      // Queued: poll the job until it completes, fails, or times out.
+      const jobKey = result.scanJobId || result.jobId;
+      if (!jobKey) throw new Error("Scan was queued but no job id was returned");
+      setScanJobStatus("Queued — waiting for the worker…");
+      const deadline = Date.now() + 120_000;
+      while (Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const job = await getScanJob(jobKey);
+        setScanJobStatus(
+          job.status === "active"
+            ? "Scanning…"
+            : job.status === "completed"
+              ? "Completed"
+              : job.status === "failed"
+                ? `Failed: ${job.errorMessage || "scan failed"}`
+                : "Queued — waiting for the worker…"
+        );
+        if (job.status === "completed") {
+          if (job.resultSummary) {
+            setScanResult({ competitorId: id, scannedAt: job.resultSummary.scannedAt, results: job.resultSummary.results as ScanSummary["results"] });
+          }
+          await Promise.all([loadSnapshots(), loadChanges(), loadScanJobs()]);
+          return;
+        }
+        if (job.status === "failed") {
+          setScanError(job.errorMessage || "Scan failed");
+          await loadScanJobs();
+          return;
+        }
+      }
+      setScanJobStatus("Still running after 2 minutes — check the scan jobs list below.");
+      await loadScanJobs();
     } catch (err) {
       setScanError(err instanceof Error ? err.message : "Scan failed");
     } finally {
@@ -244,8 +289,14 @@ export default function CompetitorDetailPage() {
         <p className="mt-2 text-sm text-neutral-600">
           Fetches the pricing, changelog, careers, and review pages above and saves
           a snapshot of each. Pages that have not changed since the last scan are
-          not stored again.
+          not stored again. Phase 9: the scan runs as a background job — this
+          page polls its status and reloads when it finishes.
         </p>
+        <p className="mt-2 text-sm text-neutral-600">
+          Scheduled scans: {competitor.isMonitoringEnabled ? `on, every ${competitor.monitoringFrequency}` : "paused — automatic scans are off, manual scans still work"}
+          {competitor.lastScannedAt ? ` · Last scanned ${new Date(competitor.lastScannedAt).toLocaleString()}${competitor.lastScanStatus ? ` (${competitor.lastScanStatus})` : ""}` : " · Never scanned yet"}
+        </p>
+        {scanJobStatus && <p className="mt-3 rounded-md bg-indigo-50 p-3 text-sm text-indigo-800">{scanJobStatus}</p>}
         {scanError && <p className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700">{scanError}</p>}
         {scanResult && (
           <ul className="mt-3 space-y-1 text-sm">
@@ -273,6 +324,40 @@ export default function CompetitorDetailPage() {
           <ul className="mt-3 space-y-3">
             {changes.map((c) => (
               <ChangeCard key={c.id} change={c} />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-6 rounded-lg border border-neutral-200 bg-white p-5">
+        <h2 className="text-lg font-medium">Recent scan jobs</h2>
+        {scanJobs.length === 0 ? (
+          <p className="mt-2 text-sm text-neutral-600">
+            No scan jobs yet. Press “Scan now” above, or wait for a scheduled scan.
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-2 text-sm">
+            {scanJobs.map((j) => (
+              <li key={j.id} className="flex flex-wrap gap-2">
+                <span className="font-medium">{j.trigger === "scheduled" ? "Scheduled" : "Manual"}</span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                    j.status === "completed"
+                      ? "bg-green-100 text-green-800"
+                      : j.status === "failed"
+                        ? "bg-red-100 text-red-800"
+                        : j.status === "active"
+                          ? "bg-indigo-100 text-indigo-800"
+                          : "bg-neutral-100 text-neutral-700"
+                  }`}
+                >
+                  {j.status}
+                </span>
+                <span className="text-neutral-500">
+                  {j.queuedAt ? new Date(j.queuedAt).toLocaleString() : ""}
+                  {j.errorMessage ? ` — ${j.errorMessage}` : ""}
+                </span>
+              </li>
             ))}
           </ul>
         )}

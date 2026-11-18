@@ -4,6 +4,8 @@ export type BackendHealth = {
   timestamp: string;
   database: "connected" | "disconnected";
   databaseNote: string;
+  redis?: "connected" | "disconnected";
+  redisNote?: string;
 };
 
 export type AuthUser = {
@@ -27,6 +29,8 @@ export type Competitor = {
   reviewSourceUrl?: string;
   monitoringFrequency: MonitoringFrequency;
   isMonitoringEnabled: boolean;
+  lastScannedAt?: string | null;
+  lastScanStatus?: "success" | "partial" | "failed" | null;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -261,4 +265,37 @@ export type DashboardOverview = {
   priceMoves: DashboardChangeItem[];
   recentChanges: DashboardChangeItem[];
   scanHealth: DashboardScanHealth[];
+};
+
+// Phase 9: background scan jobs (BullMQ + ScanJob record).
+export type ScanJobTrigger = "manual" | "scheduled";
+export type ScanJobStatus = "queued" | "active" | "completed" | "failed";
+
+export type ScanJob = {
+  id: string;
+  organizationId: string;
+  competitorId: string;
+  jobId: string;
+  trigger: ScanJobTrigger;
+  status: ScanJobStatus;
+  resultSummary?: {
+    scannedAt: string;
+    results: { sourceType: string; outcome: string; changesDetected?: number; message?: string }[];
+  } | null;
+  errorMessage?: string | null;
+  attemptsMade?: number | null;
+  queuedAt: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ScanEnqueueResult = {
+  queued: boolean;
+  jobId?: string;
+  scanJobId?: string | null;
+  status?: ScanJobStatus;
+  message?: string;
+  scan?: ScanSummary;
 };
