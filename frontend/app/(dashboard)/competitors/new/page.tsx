@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import Box from "@mui/material/Box";
 import CompetitorForm from "../CompetitorForm";
 import { createCompetitor } from "@/services/competitors";
+import { BackLink, Card, PageHeader } from "@/components/ui";
 import type { CompetitorInput } from "@/types";
 
 export default function NewCompetitorPage() {
@@ -23,17 +25,21 @@ export default function NewCompetitorPage() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12">
-      <p className="text-sm font-medium text-indigo-700">
-        <Link href="/competitors" className="hover:underline">← Competitors</Link>
-      </p>
-      <h1 className="mt-1 text-3xl font-semibold">Add a competitor</h1>
-      <p className="mt-2 text-neutral-600">
-        It is saved under your organization only — no other organization can see it.
-      </p>
-      <div className="mt-2 rounded-lg border border-neutral-200 bg-white p-6">
-        <CompetitorForm submitLabel="Add competitor" serverError={serverError} onSubmit={onSubmit} />
-      </div>
-    </main>
+    <Box>
+      <PageHeader
+        eyebrow={
+          <BackLink href="/competitors">
+            <ArrowBackIcon sx={{ fontSize: 16 }} /> Competitors
+          </BackLink>
+        }
+        title="Add a competitor"
+        description="It is saved under your organization only — no other organization can see it."
+      />
+      <Card sx={{ mt: 3, maxWidth: 768 }} disablePadding>
+        <Box sx={{ p: { xs: 2.5, sm: 4 } }}>
+          <CompetitorForm submitLabel="Add competitor" serverError={serverError} onSubmit={onSubmit} />
+        </Box>
+      </Card>
+    </Box>
   );
 }

@@ -1,8 +1,21 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
+import FormControl from "@mui/material/FormControl";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Grid from "@mui/material/Grid2";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
+import Switch from "@mui/material/Switch";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import type { CompetitorInput, MonitoringFrequency } from "@/types";
 
 const competitorFormSchema = z.object({
@@ -18,16 +31,6 @@ const competitorFormSchema = z.object({
 
 type CompetitorFormValues = z.infer<typeof competitorFormSchema>;
 
-function field(label: string, error: string | undefined, input: React.ReactNode) {
-  return (
-    <div>
-      <label className="text-sm font-medium">{label}</label>
-      {input}
-      {error && <p className="mt-1 text-sm text-red-700">{error}</p>}
-    </div>
-  );
-}
-
 export default function CompetitorForm({
   defaultValues,
   submitLabel,
@@ -42,6 +45,7 @@ export default function CompetitorForm({
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<CompetitorFormValues>({
     resolver: zodResolver(competitorFormSchema),
@@ -74,68 +78,150 @@ export default function CompetitorForm({
     });
   }
 
-  const inputClass = "mt-1 w-full rounded-md border border-neutral-300 px-3 py-2";
-
   return (
-    <form onSubmit={handleSubmit(submit)} className="mt-6 space-y-4">
-      {field(
-        "Company name *",
-        errors.companyName?.message,
-        <input id="companyName" type="text" placeholder="e.g. Asana" {...register("companyName")} className={inputClass} />
-      )}
-      {field(
-        "Website URL *",
-        errors.websiteUrl?.message,
-        <input id="websiteUrl" type="url" placeholder="https://asana.com" {...register("websiteUrl")} className={inputClass} />
-      )}
-      {field(
-        "Pricing page URL",
-        errors.pricingPageUrl?.message,
-        <input id="pricingPageUrl" type="url" placeholder="https://asana.com/pricing" {...register("pricingPageUrl")} className={inputClass} />
-      )}
-      {field(
-        "Changelog URL",
-        errors.changelogUrl?.message,
-        <input id="changelogUrl" type="url" placeholder="https://asana.com/changelog" {...register("changelogUrl")} className={inputClass} />
-      )}
-      {field(
-        "Careers page URL",
-        errors.careersPageUrl?.message,
-        <input id="careersPageUrl" type="url" placeholder="https://asana.com/jobs" {...register("careersPageUrl")} className={inputClass} />
-      )}
-      {field(
-        "Review source URL",
-        errors.reviewSourceUrl?.message,
-        <input id="reviewSourceUrl" type="url" placeholder="https://www.g2.com/products/asana/reviews" {...register("reviewSourceUrl")} className={inputClass} />
-      )}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor="monitoringFrequency" className="text-sm font-medium">How often to check</label>
-          <select id="monitoringFrequency" {...register("monitoringFrequency")} className={inputClass}>
-            <option value="hourly">Hourly</option>
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-          </select>
-        </div>
-        <div className="flex items-end pb-2">
-          <label className="flex items-center gap-2 text-sm font-medium">
-            <input type="checkbox" {...register("isMonitoringEnabled")} className="h-4 w-4" />
-            Monitoring enabled
-          </label>
-        </div>
-      </div>
-      <p className="text-sm text-neutral-500">
-        Only the company name and website are required. The other URLs are the pages
-        this tool will watch in the scraping phase — you can add them later.
-      </p>
-      {serverError && <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{serverError}</p>}
-      <button
+    <Box component="form" onSubmit={handleSubmit(submit)} sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <Box component="section">
+        <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700 }}>
+          Company
+        </Typography>
+        <Grid container spacing={2} sx={{ mt: 1.5 }}>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <TextField
+              id="companyName"
+              label="Company name *"
+              placeholder="e.g. Asana"
+              fullWidth
+              {...register("companyName")}
+              error={!!errors.companyName}
+              helperText={errors.companyName?.message}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <TextField
+              id="websiteUrl"
+              label="Website URL *"
+              type="url"
+              placeholder="https://asana.com"
+              fullWidth
+              {...register("websiteUrl")}
+              error={!!errors.websiteUrl}
+              helperText={errors.websiteUrl?.message}
+            />
+          </Grid>
+        </Grid>
+      </Box>
+
+      <Box component="section">
+        <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700 }}>
+          Pages to watch
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          Only the company name and website are required. Add the pages below to have them scanned — you can add them later.
+        </Typography>
+        <Grid container spacing={2} sx={{ mt: 1.5 }}>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <TextField
+              id="pricingPageUrl"
+              label="Pricing page URL"
+              type="url"
+              placeholder="https://asana.com/pricing"
+              fullWidth
+              {...register("pricingPageUrl")}
+              error={!!errors.pricingPageUrl}
+              helperText={errors.pricingPageUrl?.message}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <TextField
+              id="changelogUrl"
+              label="Changelog URL"
+              type="url"
+              placeholder="https://asana.com/changelog"
+              fullWidth
+              {...register("changelogUrl")}
+              error={!!errors.changelogUrl}
+              helperText={errors.changelogUrl?.message}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <TextField
+              id="careersPageUrl"
+              label="Careers page URL"
+              type="url"
+              placeholder="https://asana.com/jobs"
+              fullWidth
+              {...register("careersPageUrl")}
+              error={!!errors.careersPageUrl}
+              helperText={errors.careersPageUrl?.message}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <TextField
+              id="reviewSourceUrl"
+              label="Review source URL"
+              type="url"
+              placeholder="https://www.g2.com/products/asana/reviews"
+              fullWidth
+              {...register("reviewSourceUrl")}
+              error={!!errors.reviewSourceUrl}
+              helperText={errors.reviewSourceUrl?.message}
+            />
+          </Grid>
+        </Grid>
+      </Box>
+
+      <Box component="section">
+        <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700 }}>
+          Monitoring
+        </Typography>
+        <Grid container spacing={2} sx={{ mt: 1.5 }}>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <FormControl fullWidth>
+              <InputLabel id="monitoringFrequency-label">How often to check</InputLabel>
+              <Controller
+                name="monitoringFrequency"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    id="monitoringFrequency"
+                    labelId="monitoringFrequency-label"
+                    label="How often to check"
+                    {...field}
+                  >
+                    <MenuItem value="hourly">Hourly</MenuItem>
+                    <MenuItem value="daily">Daily</MenuItem>
+                    <MenuItem value="weekly">Weekly</MenuItem>
+                  </Select>
+                )}
+              />
+            </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6 }} sx={{ display: "flex", alignItems: "flex-end" }}>
+            <Controller
+              name="isMonitoringEnabled"
+              control={control}
+              render={({ field }) => (
+                <FormControlLabel
+                  control={<Switch {...field} checked={field.value} color="primary" />}
+                  label="Monitoring enabled"
+                />
+              )}
+            />
+          </Grid>
+        </Grid>
+      </Box>
+
+      {serverError && <Alert severity="error">{serverError}</Alert>}
+      <Button
         type="submit"
         disabled={isSubmitting}
-        className="w-full rounded-md bg-indigo-700 px-4 py-2 font-medium text-white disabled:opacity-50"
+        variant="contained"
+        size="large"
+        startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : undefined}
+        sx={{ width: { xs: "100%", sm: "auto" }, alignSelf: "flex-start" }}
       >
         {isSubmitting ? "Saving…" : submitLabel}
-      </button>
-    </form>
+      </Button>
+    </Box>
   );
 }

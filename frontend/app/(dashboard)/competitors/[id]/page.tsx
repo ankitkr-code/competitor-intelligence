@@ -3,12 +3,34 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import Alert from "@mui/material/Alert";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CircularProgress from "@mui/material/CircularProgress";
+import DescriptionIcon from "@mui/icons-material/Description";
+import EditIcon from "@mui/icons-material/Edit";
+import Grid from "@mui/material/Grid2";
+import HistoryIcon from "@mui/icons-material/History";
+import LanguageIcon from "@mui/icons-material/Language";
+import LinkMui from "@mui/material/Link";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import RadarIcon from "@mui/icons-material/Radar";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+import StyleIcon from "@mui/icons-material/Style";
+import Typography from "@mui/material/Typography";
 import { getCompetitor } from "@/services/competitors";
 import { listSnapshots, triggerScan } from "@/services/scans";
 import { getScanJob, listCompetitorScanJobs } from "@/services/jobs";
 import { listCompetitorChanges } from "@/services/changes";
 import { analyzeCompetitor, listAnalyses } from "@/services/analysis";
 import ChangeCard, { categoryLabel } from "@/components/ChangeCard";
+import { Badge, EmptyState, BackLink, PageHeader } from "@/components/ui";
+import { motion } from "framer-motion";
+import { fadeUp, staggerParent } from "@/components/motion";
 import type { Analysis, ChangeEvent, Competitor, ScanJob, ScanSummary, Snapshot } from "@/types";
 
 function sourceLabel(type: Snapshot["sourceType"]): string {
@@ -59,14 +81,14 @@ function snapshotSummary(s: Snapshot): string {
 function analysisList(title: string, items: string[]) {
   if (items.length === 0) return null;
   return (
-    <div className="mt-4">
-      <h3 className="text-sm font-medium text-neutral-700">{title}</h3>
-      <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-neutral-700">
+    <Box sx={{ mt: 2.5 }}>
+      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{title}</Typography>
+      <Box component="ul" sx={{ m: 0, mt: 1, pl: 2.5, "& li": { mb: 0.75, lineHeight: 1.6 } }}>
         {items.map((item, i) => (
-          <li key={i}>{item}</li>
+          <Typography key={i} component="li" variant="body2">{item}</Typography>
         ))}
-      </ul>
-    </div>
+      </Box>
+    </Box>
   );
 }
 
@@ -201,19 +223,21 @@ export default function CompetitorDetailPage() {
 
   if (loadError) {
     return (
-      <main className="mx-auto max-w-3xl px-6 py-12">
-        <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{loadError}</p>
-        <Link href="/competitors" className="mt-4 inline-block font-medium text-indigo-700">
-          ← Back to competitors
-        </Link>
-      </main>
+      <Box>
+        <Alert severity="error">{loadError}</Alert>
+        <Box sx={{ mt: 2 }}>
+          <BackLink href="/competitors">
+            <ArrowBackIcon sx={{ fontSize: 16 }} /> Back to competitors
+          </BackLink>
+        </Box>
+      </Box>
     );
   }
   if (!competitor) {
     return (
-      <main className="mx-auto max-w-3xl px-6 py-12">
-        <p className="text-neutral-600">Loading competitor…</p>
-      </main>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, py: 8, color: "text.secondary" }}>
+        <CircularProgress size={18} /> Loading competitor…
+      </Box>
     );
   }
 
@@ -226,272 +250,333 @@ export default function CompetitorDetailPage() {
   ];
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12">
-      <p className="text-sm font-medium text-indigo-700">
-        <Link href="/competitors" className="hover:underline">← Competitors</Link>
-      </p>
-      <div className="mt-1 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold">{competitor.companyName}</h1>
-          <a href={competitor.websiteUrl} target="_blank" rel="noreferrer"
-            className="text-sm text-indigo-700 hover:underline">
-            {competitor.websiteUrl}
-          </a>
-          <p className="mt-1 text-sm text-neutral-600">
-            Checks {competitor.monitoringFrequency} ·{" "}
-            {competitor.isMonitoringEnabled ? "Monitoring" : "Paused"} · Added{" "}
-            {new Date(competitor.createdAt).toLocaleDateString()}
-          </p>
-        </div>
-        <Link
-          href={`/battlecards/${competitor.id}`}
-          className="shrink-0 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium"
-        >
-          Battlecard
-        </Link>
-        <Link
-          href={`/competitors/${competitor.id}/edit`}
-          className="shrink-0 rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium"
-        >
-          Edit
-        </Link>
-      </div>
-
-      <section className="mt-6 rounded-lg border border-neutral-200 bg-white p-5">
-        <h2 className="text-lg font-medium">Pages being watched</h2>
-        <ul className="mt-3 space-y-2 text-sm">
-          {urls.map(({ label, url }) => (
-            <li key={label} className="flex gap-2">
-              <span className="w-28 shrink-0 font-medium text-neutral-700">{label}</span>
-              {url ? (
-                <a href={url} target="_blank" rel="noreferrer" className="break-all text-indigo-700 hover:underline">
-                  {url}
-                </a>
-              ) : (
-                <span className="text-neutral-400">Not set — add it in Edit</span>
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="mt-6 rounded-lg border border-neutral-200 bg-white p-5">
-        <div className="flex items-center justify-between gap-4">
-          <h2 className="text-lg font-medium">Scan now</h2>
-          <button
-            onClick={handleScan}
-            disabled={scanning}
-            className="rounded-md bg-indigo-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          >
-            {scanning ? "Scanning…" : "Scan now"}
-          </button>
-        </div>
-        <p className="mt-2 text-sm text-neutral-600">
-          Fetches the pricing, changelog, careers, and review pages above and saves
-          a snapshot of each. Pages that have not changed since the last scan are
-          not stored again. Phase 9: the scan runs as a background job — this
-          page polls its status and reloads when it finishes.
-        </p>
-        <p className="mt-2 text-sm text-neutral-600">
-          Scheduled scans: {competitor.isMonitoringEnabled ? `on, every ${competitor.monitoringFrequency}` : "paused — automatic scans are off, manual scans still work"}
-          {competitor.lastScannedAt ? ` · Last scanned ${new Date(competitor.lastScannedAt).toLocaleString()}${competitor.lastScanStatus ? ` (${competitor.lastScanStatus})` : ""}` : " · Never scanned yet"}
-        </p>
-        {scanJobStatus && <p className="mt-3 rounded-md bg-indigo-50 p-3 text-sm text-indigo-800">{scanJobStatus}</p>}
-        {scanError && <p className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700">{scanError}</p>}
-        {scanResult && (
-          <ul className="mt-3 space-y-1 text-sm">
-            {scanResult.results.map((r) => (
-              <li key={r.sourceType} className="flex gap-2">
-                <span className="font-medium">{sourceLabel(r.sourceType)}:</span>
-                <span>{outcomeLabel(r.outcome)}{r.message ? ` — ${r.message}` : ""}{r.outcome === "created" && r.changesDetected !== undefined && r.changesDetected > 0 ? ` — ${r.changesDetected} change${r.changesDetected === 1 ? "" : "s"} detected` : ""}</span>
-              </li>
-            ))}
-            {scanResult.results.length === 0 && (
-              <li className="text-neutral-600">No pages configured to scan yet — add a pricing, changelog, careers, or review URL in Edit.</li>
-            )}
-          </ul>
-        )}
-      </section>
-
-      <section className="mt-6">
-        <h2 className="text-lg font-medium">Detected changes</h2>
-        {changes.length === 0 ? (
-          <p className="mt-2 rounded-lg border border-neutral-200 bg-white p-5 text-neutral-700">
-            No changes detected yet. The first scan sets the baseline; the next
-            scan compares against it and lists what moved here.
-          </p>
+    <Box>
+      <PageHeader
+        eyebrow={
+          <BackLink href="/competitors">
+            <ArrowBackIcon sx={{ fontSize: 16 }} /> Competitors
+          </BackLink>
+        }
+        title={competitor.companyName}
+        description={`${competitor.websiteUrl} · Checks ${competitor.monitoringFrequency} · Added ${new Date(competitor.createdAt).toLocaleDateString()}`}
+        actions={
+          <>
+            <Button variant="outlined" component={Link} href={`/battlecards/${competitor.id}`} startIcon={<StyleIcon />}>
+              Battlecard
+            </Button>
+            <Button variant="outlined" component={Link} href={`/competitors/${competitor.id}/edit`} startIcon={<EditIcon />}>
+              Edit
+            </Button>
+          </>
+        }
+      />
+      <Box sx={{ mt: 1.5, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
+        {competitor.isMonitoringEnabled ? (
+          <Badge tone="green">Monitoring</Badge>
         ) : (
-          <ul className="mt-3 space-y-3">
-            {changes.map((c) => (
-              <ChangeCard key={c.id} change={c} />
-            ))}
-          </ul>
+          <Badge tone="neutral">Paused</Badge>
         )}
-      </section>
-
-      <section className="mt-6 rounded-lg border border-neutral-200 bg-white p-5">
-        <h2 className="text-lg font-medium">Recent scan jobs</h2>
-        {scanJobs.length === 0 ? (
-          <p className="mt-2 text-sm text-neutral-600">
-            No scan jobs yet. Press “Scan now” above, or wait for a scheduled scan.
-          </p>
+        {competitor.lastScannedAt ? (
+          <Typography variant="body2" color="text.secondary" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}>
+            <ScheduleIcon sx={{ fontSize: 16 }} />
+            Last scanned {new Date(competitor.lastScannedAt).toLocaleString()}
+            {competitor.lastScanStatus ? ` (${competitor.lastScanStatus})` : ""}
+          </Typography>
         ) : (
-          <ul className="mt-3 space-y-2 text-sm">
-            {scanJobs.map((j) => (
-              <li key={j.id} className="flex flex-wrap gap-2">
-                <span className="font-medium">{j.trigger === "scheduled" ? "Scheduled" : "Manual"}</span>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                    j.status === "completed"
-                      ? "bg-green-100 text-green-800"
-                      : j.status === "failed"
-                        ? "bg-red-100 text-red-800"
-                        : j.status === "active"
-                          ? "bg-indigo-100 text-indigo-800"
-                          : "bg-neutral-100 text-neutral-700"
-                  }`}
-                >
-                  {j.status}
-                </span>
-                <span className="text-neutral-500">
-                  {j.queuedAt ? new Date(j.queuedAt).toLocaleString() : ""}
-                  {j.errorMessage ? ` — ${j.errorMessage}` : ""}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <Typography variant="body2" color="text.secondary">Never scanned yet</Typography>
         )}
-      </section>
+      </Box>
 
-      <section className="mt-6 rounded-lg border border-neutral-200 bg-white p-5">
-        <div className="flex items-center justify-between gap-4">
-          <h2 className="text-lg font-medium">AI analysis</h2>
-          <button
-            onClick={handleAnalyze}
-            disabled={analyzing}
-            className="rounded-md bg-indigo-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-          >
-            {analyzing ? "Analysing…" : "Analyse latest changes"}
-          </button>
-        </div>
-        <p className="mt-2 text-sm text-neutral-600">
-          Sends the newest detected changes that no earlier analysis has
-          covered to OpenAI and returns a structured summary — what changed,
-          what it could mean, strengths, weaknesses, and what to say to
-          customers. Each run uses API credits, so it only runs when you
-          press the button.
-        </p>
-        {analyzeError && <p className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700">{analyzeError}</p>}
-        {analyzeMessage && <p className="mt-3 rounded-md bg-indigo-50 p-3 text-sm text-indigo-800">{analyzeMessage}</p>}
-        {selectedAnalysis ? (
-          <div className="mt-4">
-            <p className="flex flex-wrap items-center gap-2 text-sm">
-              <span
-                className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                  selectedAnalysis.confidence === "high"
-                    ? "bg-green-100 text-green-800"
-                    : selectedAnalysis.confidence === "medium"
-                      ? "bg-amber-100 text-amber-800"
-                      : "bg-neutral-100 text-neutral-700"
-                }`}
-              >
-                Confidence: {selectedAnalysis.confidence}
-              </span>
-              <span className="text-neutral-500">
-                {new Date(selectedAnalysis.generatedAt).toLocaleString()} · {selectedAnalysis.aiModel}
-              </span>
-            </p>
-            <p className="mt-2 rounded-md bg-amber-50 p-3 text-sm text-amber-800">
-              AI-generated — verify before using in sales conversations. The
-              detected changes it is based on are listed under “Based on”
-              below.
-            </p>
-            <p className="mt-3 text-sm leading-relaxed">{selectedAnalysis.summary}</p>
-            {analysisList("What this could mean", selectedAnalysis.implications)}
-            {analysisList("Strengths", selectedAnalysis.strengths)}
-            {analysisList("Weaknesses", selectedAnalysis.weaknesses)}
-            {analysisList("Suggested responses", selectedAnalysis.suggestedResponses)}
-            {analysisList("Talking points", selectedAnalysis.talkingPoints)}
-            <div className="mt-4">
-              <h3 className="text-sm font-medium text-neutral-700">Based on</h3>
-              <ul className="mt-1 space-y-1 text-sm text-neutral-600">
-                {selectedAnalysis.sources.map((s, i) => (
-                  <li key={i}>
-                    {categoryLabel(s.category)}: {s.title}{" "}
-                    <a href={s.sourceUrl} target="_blank" rel="noreferrer" className="text-indigo-700 hover:underline">
-                      Source ↗
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            {analyses.length > 1 && (
-              <div className="mt-4 border-t border-neutral-200 pt-3">
-                <h3 className="text-sm font-medium text-neutral-700">Previous analyses</h3>
-                <ul className="mt-2 space-y-1">
-                  {analyses.map((a) => (
-                    <li key={a.id}>
-                      <button
-                        onClick={() => setSelectedAnalysisId(a.id)}
-                        className={`text-left text-sm hover:underline ${a.id === selectedAnalysisId ? "font-medium text-indigo-700" : "text-neutral-600"}`}
-                      >
-                        {new Date(a.generatedAt).toLocaleString()} — {a.summary.slice(0, 80)}
-                        {a.summary.length > 80 ? "…" : ""}
-                      </button>
-                    </li>
+      <Grid container spacing={3} sx={{ mt: 1 }}>
+        <Grid size={{ xs: 12, xl: 7 }} component={motion.div} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.45, ease: "easeOut" }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <Card>
+              <Box sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <LanguageIcon color="primary" /> Pages being watched
+                </Typography>
+                <Box component="ul" sx={{ m: 0, mt: 2, p: 0, listStyle: "none" }}>
+                  {urls.map(({ label, url }) => (
+                    <Box
+                      key={label}
+                      component="li"
+                      sx={{ display: "flex", alignItems: "center", gap: 1.5, py: 1.25, borderBottom: "1px solid rgba(17,24,39,0.06)", "&:last-child": { borderBottom: "none", pb: 0 }, "&:first-of-type": { pt: 0 } }}
+                    >
+                      <Typography variant="body2" sx={{ width: 112, flexShrink: 0, fontWeight: 600 }}>{label}</Typography>
+                      {url ? (
+                        <LinkMui href={url} target="_blank" rel="noreferrer" sx={{ display: "inline-flex", minWidth: 0, alignItems: "center", gap: 0.5, fontSize: "0.875rem" }}>
+                          <Typography component="span" sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{url}</Typography>
+                          <OpenInNewIcon sx={{ fontSize: 14, flexShrink: 0 }} />
+                        </LinkMui>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">Not set — add it in Edit</Typography>
+                      )}
+                    </Box>
                   ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        ) : (
-          <p className="mt-3 text-sm text-neutral-600">
-            No analysis yet. Detect some changes first (scan, change a page,
-            scan again), then press “Analyse latest changes”.
-          </p>
-        )}
-      </section>
+                </Box>
+              </Box>
+            </Card>
 
-      <section className="mt-6">
-        <h2 className="text-lg font-medium">Snapshot history</h2>
+            <Card>
+              <Box sx={{ p: 3 }}>
+                <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 1.5 }}>
+                  <Typography variant="h6" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <RadarIcon color="primary" /> Scan now
+                  </Typography>
+                  <Button onClick={handleScan} disabled={scanning} variant="contained" startIcon={scanning ? <CircularProgress size={16} color="inherit" /> : <RefreshIcon />}>
+                    {scanning ? "Scanning…" : "Scan now"}
+                  </Button>
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5, lineHeight: 1.6 }}>
+                  Fetches the pricing, changelog, careers, and review pages above and saves
+                  a snapshot of each. Pages that have not changed since the last scan are
+                  not stored again. The scan runs as a background job — this page polls
+                  its status and reloads when it finishes.
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Scheduled scans: {competitor.isMonitoringEnabled ? `on, every ${competitor.monitoringFrequency}` : "paused — automatic scans are off, manual scans still work"}
+                </Typography>
+                {scanJobStatus && (
+                  <Alert severity="info" icon={<CircularProgress size={16} />} sx={{ mt: 2 }}>
+                    {scanJobStatus}
+                  </Alert>
+                )}
+                {scanError && (
+                  <Alert severity="error" sx={{ mt: 2 }}>{scanError}</Alert>
+                )}
+                {scanResult && (
+                  <Box component="ul" sx={{ m: 0, mt: 2, p: 0, listStyle: "none", "& li": { mb: 0.75 } }}>
+                    {scanResult.results.map((r) => (
+                      <Typography key={r.sourceType} component="li" variant="body2">
+                        <Typography component="span" sx={{ fontWeight: 700 }}>{sourceLabel(r.sourceType)}:</Typography>{" "}
+                        {outcomeLabel(r.outcome)}{r.message ? ` — ${r.message}` : ""}{r.outcome === "created" && r.changesDetected !== undefined && r.changesDetected > 0 ? ` — ${r.changesDetected} change${r.changesDetected === 1 ? "" : "s"} detected` : ""}
+                      </Typography>
+                    ))}
+                    {scanResult.results.length === 0 && (
+                      <Typography component="li" variant="body2" color="text.secondary">
+                        No pages configured to scan yet — add a pricing, changelog, careers, or review URL in Edit.
+                      </Typography>
+                    )}
+                  </Box>
+                )}
+              </Box>
+            </Card>
+
+            <Box>
+              <Typography variant="h6">Detected changes</Typography>
+              {changes.length === 0 ? (
+                <Card sx={{ mt: 1.5 }}>
+                  <EmptyState
+                    title="No changes detected yet"
+                    description="The first scan sets the baseline; the next scan compares against it and lists what moved here."
+                  />
+                </Card>
+              ) : (
+                <motion.ul variants={staggerParent} initial="hidden" animate="show" style={{ margin: 0, marginTop: 12, padding: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+                  {changes.map((c) => (
+                    <ChangeCard key={c.id} change={c} />
+                  ))}
+                </motion.ul>
+              )}
+            </Box>
+          </Box>
+        </Grid>
+
+        <Grid size={{ xs: 12, xl: 5 }} component={motion.div} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.45, ease: "easeOut" }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            <Card>
+              <Box sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <HistoryIcon color="primary" /> Recent scan jobs
+                </Typography>
+                {scanJobs.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
+                    No scan jobs yet. Press “Scan now” above, or wait for a scheduled scan.
+                  </Typography>
+                ) : (
+                  <Box component="ul" sx={{ m: 0, mt: 2, p: 0, listStyle: "none" }}>
+                    {scanJobs.map((j) => (
+                      <Box
+                        key={j.id}
+                        component="li"
+                        sx={{ py: 1.5, borderBottom: "1px solid rgba(17,24,39,0.06)", "&:last-child": { borderBottom: "none", pb: 0 }, "&:first-of-type": { pt: 0 } }}
+                      >
+                        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {j.trigger === "scheduled" ? "Scheduled" : "Manual"}
+                          </Typography>
+                          <Badge
+                            tone={
+                              j.status === "completed"
+                                ? "green"
+                                : j.status === "failed"
+                                  ? "red"
+                                  : j.status === "active"
+                                    ? "indigo"
+                                    : "neutral"
+                            }
+                          >
+                            {j.status}
+                          </Badge>
+                        </Box>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                          {j.queuedAt ? new Date(j.queuedAt).toLocaleString() : ""}
+                          {j.errorMessage ? ` — ${j.errorMessage}` : ""}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+              </Box>
+            </Card>
+
+            <Card>
+              <Box sx={{ p: 3 }}>
+                <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 1.5 }}>
+                  <Typography variant="h6" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <AutoAwesomeIcon color="primary" /> AI analysis
+                  </Typography>
+                  <Button onClick={handleAnalyze} disabled={analyzing} variant="contained" startIcon={analyzing ? <CircularProgress size={16} color="inherit" /> : undefined}>
+                    {analyzing ? "Analysing…" : "Analyse latest changes"}
+                  </Button>
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5, lineHeight: 1.6 }}>
+                  Sends the newest detected changes that no earlier analysis has
+                  covered to OpenAI and returns a structured summary — what changed,
+                  what it could mean, strengths, weaknesses, and what to say to
+                  customers. Each run uses API credits, so it only runs when you
+                  press the button.
+                </Typography>
+                {analyzeError && (
+                  <Alert severity="error" sx={{ mt: 2 }}>{analyzeError}</Alert>
+                )}
+                {analyzeMessage && (
+                  <Alert severity="info" sx={{ mt: 2 }}>{analyzeMessage}</Alert>
+                )}
+                {selectedAnalysis ? (
+                  <Box sx={{ mt: 2, borderTop: "1px solid rgba(17,24,39,0.06)", pt: 2 }}>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
+                      <Badge
+                        tone={
+                          selectedAnalysis.confidence === "high"
+                            ? "green"
+                            : selectedAnalysis.confidence === "medium"
+                              ? "amber"
+                              : "neutral"
+                        }
+                      >
+                        Confidence: {selectedAnalysis.confidence}
+                      </Badge>
+                      <Typography variant="body2" color="text.secondary">
+                        {new Date(selectedAnalysis.generatedAt).toLocaleString()} · {selectedAnalysis.aiModel}
+                      </Typography>
+                    </Box>
+                    <Alert severity="warning" sx={{ mt: 1.5 }}>
+                      AI-generated — verify before using in sales conversations. The
+                      detected changes it is based on are listed under “Based on”
+                      below.
+                    </Alert>
+                    <Typography variant="body2" sx={{ mt: 1.5, lineHeight: 1.7 }}>{selectedAnalysis.summary}</Typography>
+                    {analysisList("What this could mean", selectedAnalysis.implications)}
+                    {analysisList("Strengths", selectedAnalysis.strengths)}
+                    {analysisList("Weaknesses", selectedAnalysis.weaknesses)}
+                    {analysisList("Suggested responses", selectedAnalysis.suggestedResponses)}
+                    {analysisList("Talking points", selectedAnalysis.talkingPoints)}
+                    <Box sx={{ mt: 2.5 }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Based on</Typography>
+                      <Box component="ul" sx={{ m: 0, mt: 1, p: 0, listStyle: "none", "& li": { mb: 0.75 } }}>
+                        {selectedAnalysis.sources.map((s, i) => (
+                          <Typography key={i} component="li" variant="body2" color="text.secondary">
+                            {categoryLabel(s.category)}: {s.title}{" "}
+                            <LinkMui href={s.sourceUrl} target="_blank" rel="noreferrer" sx={{ fontWeight: 600 }}>
+                              Source ↗
+                            </LinkMui>
+                          </Typography>
+                        ))}
+                      </Box>
+                    </Box>
+                    {analyses.length > 1 && (
+                      <Box sx={{ mt: 2.5, borderTop: "1px solid rgba(17,24,39,0.06)", pt: 2 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Previous analyses</Typography>
+                        <Box component="ul" sx={{ m: 0, mt: 1, p: 0, listStyle: "none", "& li": { mb: 0.75 } }}>
+                          {analyses.map((a) => (
+                            <Box key={a.id} component="li">
+                              <LinkMui
+                                component="button"
+                                onClick={() => setSelectedAnalysisId(a.id)}
+                                sx={{
+                                  textAlign: "left",
+                                  cursor: "pointer",
+                                  fontSize: "0.875rem",
+                                  color: a.id === selectedAnalysisId ? "primary.main" : "text.secondary",
+                                  fontWeight: a.id === selectedAnalysisId ? 600 : 400,
+                                  "&:hover": { textDecoration: "underline" },
+                                }}
+                              >
+                                {new Date(a.generatedAt).toLocaleString()} — {a.summary.slice(0, 80)}
+                                {a.summary.length > 80 ? "…" : ""}
+                              </LinkMui>
+                            </Box>
+                          ))}
+                        </Box>
+                      </Box>
+                    )}
+                  </Box>
+                ) : (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
+                    No analysis yet. Detect some changes first (scan, change a page,
+                    scan again), then press “Analyse latest changes”.
+                  </Typography>
+                )}
+              </Box>
+            </Card>
+          </Box>
+        </Grid>
+      </Grid>
+
+      <Box sx={{ mt: 3 }}>
+        <Typography variant="h6" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <DescriptionIcon color="primary" /> Snapshot history
+        </Typography>
         {snapshots.length === 0 ? (
-          <p className="mt-2 rounded-lg border border-neutral-200 bg-white p-5 text-neutral-700">
-            No snapshots yet. Press <strong>Scan now</strong> to take the first snapshot of each page.
-          </p>
+          <Card sx={{ mt: 1.5 }}>
+            <EmptyState
+              title="No snapshots yet"
+              description="Press Scan now to take the first snapshot of each page."
+            />
+          </Card>
         ) : (
-          <ul className="mt-3 space-y-3">
+          <motion.ul variants={staggerParent} initial="hidden" animate="show" style={{ margin: 0, marginTop: 12, padding: 0, display: "flex", flexDirection: "column", gap: 12 }}>
             {snapshots.map((s) => (
-              <li key={s.id} className="rounded-lg border border-neutral-200 bg-white p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="font-medium">
-                      {sourceLabel(s.sourceType)}{" "}
-                      <span className={`ml-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-                        s.status === "success" ? "bg-green-100 text-green-800" :
-                        s.status === "blocked" ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-800"
-                      }`}>
+              <Card key={s.id} component={motion.li} variants={fadeUp} sx={{ listStyle: "none" }}>
+                <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, p: 2.5 }}>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{sourceLabel(s.sourceType)}</Typography>
+                      <Badge tone={s.status === "success" ? "green" : s.status === "blocked" ? "amber" : "red"}>
                         {s.status}
-                      </span>
-                    </p>
-                    <p className="mt-1 text-sm text-neutral-700">{snapshotSummary(s)}</p>
-                    <p className="mt-1 text-sm text-neutral-500">
+                      </Badge>
+                    </Box>
+                    <Typography variant="body2" sx={{ mt: 0.5 }}>{snapshotSummary(s)}</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                       {new Date(s.scrapedAt).toLocaleString()}
                       {s.contentHash ? ` · #${s.contentHash.slice(0, 8)}` : ""}
-                    </p>
+                    </Typography>
                     {s.textPreview && (
-                      <p className="mt-2 line-clamp-2 text-sm text-neutral-500">{s.textPreview}</p>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                        {s.textPreview}
+                      </Typography>
                     )}
-                  </div>
-                  <a href={s.sourceUrl} target="_blank" rel="noreferrer"
-                    className="shrink-0 text-sm text-indigo-700 hover:underline">
-                    Source ↗
-                  </a>
-                </div>
-              </li>
+                  </Box>
+                  <LinkMui href={s.sourceUrl} target="_blank" rel="noreferrer" sx={{ display: "inline-flex", flexShrink: 0, alignItems: "center", gap: 0.5, fontSize: "0.875rem", fontWeight: 600 }}>
+                    Source <OpenInNewIcon sx={{ fontSize: 14 }} />
+                  </LinkMui>
+                </Box>
+              </Card>
             ))}
-          </ul>
+          </motion.ul>
         )}
-      </section>
-    </main>
+      </Box>
+    </Box>
   );
 }

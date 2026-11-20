@@ -6,6 +6,14 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CircularProgress from "@mui/material/CircularProgress";
+import LinkMui from "@mui/material/Link";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import { loginUser } from "@/services/auth";
 
 const loginSchema = z.object({
@@ -36,31 +44,53 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-6">
-      <h1 className="text-2xl font-semibold">Sign in</h1>
-      <p className="mt-1 text-sm text-neutral-600">Sign in to your Competitor Intelligence workspace.</p>
-      <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
-        <div>
-          <label htmlFor="email" className="text-sm font-medium">Email</label>
-          <input id="email" type="email" autoComplete="email" {...register("email")}
-            className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2" />
-          {errors.email && <p className="mt-1 text-sm text-red-700">{errors.email.message}</p>}
-        </div>
-        <div>
-          <label htmlFor="password" className="text-sm font-medium">Password</label>
-          <input id="password" type="password" autoComplete="current-password" {...register("password")}
-            className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2" />
-          {errors.password && <p className="mt-1 text-sm text-red-700">{errors.password.message}</p>}
-        </div>
-        {serverError && <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{serverError}</p>}
-        <button type="submit" disabled={isSubmitting}
-          className="w-full rounded-md bg-indigo-700 px-4 py-2 font-medium text-white disabled:opacity-50">
-          {isSubmitting ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
-      <p className="mt-4 text-sm text-neutral-600">
-        No account yet? <Link href="/register" className="font-medium text-indigo-700">Create one</Link>
-      </p>
-    </div>
+    <Card>
+      <Box sx={{ p: 4 }}>
+        <Typography variant="h5" component="h1">Welcome back</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          Sign in to your Competitor Intelligence workspace.
+        </Typography>
+        <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ mt: 3, display: "flex", flexDirection: "column", gap: 2.5 }}>
+          <TextField
+            id="email"
+            label="Email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@company.com"
+            fullWidth
+            {...register("email")}
+            error={!!errors.email}
+            helperText={errors.email?.message}
+          />
+          <TextField
+            id="password"
+            label="Password"
+            type="password"
+            autoComplete="current-password"
+            fullWidth
+            {...register("password")}
+            error={!!errors.password}
+            helperText={errors.password?.message}
+          />
+          {serverError && <Alert severity="error">{serverError}</Alert>}
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            variant="contained"
+            size="large"
+            fullWidth
+            startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : undefined}
+          >
+            {isSubmitting ? "Signing in…" : "Sign in"}
+          </Button>
+        </Box>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 3, textAlign: "center" }}>
+          No account yet?{" "}
+          <LinkMui component={Link} href="/register" sx={{ fontWeight: 600 }}>
+            Create one
+          </LinkMui>
+        </Typography>
+      </Box>
+    </Card>
   );
 }

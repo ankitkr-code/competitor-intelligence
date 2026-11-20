@@ -1,10 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ActivityIcon from "@mui/icons-material/Timeline";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CircularProgress from "@mui/material/CircularProgress";
+import Typography from "@mui/material/Typography";
 import { listFeed } from "@/services/changes";
 import ChangeCard from "@/components/ChangeCard";
+import { motion } from "framer-motion";
+import { staggerParent } from "@/components/motion";
+import { EmptyState, PageHeader } from "@/components/ui";
 import type { ChangeEvent, ChangeSignificance, SnapshotSourceType } from "@/types";
 
 // Phase 5: the intelligence feed — every detected change across the whole
@@ -44,67 +53,72 @@ export default function IntelligencePage() {
     load();
   }, [load]);
 
-  const filterButton = (
-    label: string,
-    active: boolean,
-    onClick: () => void
-  ) => (
-    <button
+
+  const filterButton = (label: string, active: boolean, onClick: () => void) => (
+    <Button
       key={label}
       onClick={onClick}
-      className={`rounded-full px-3 py-1 text-sm font-medium ${
-        active ? "bg-indigo-700 text-white" : "bg-white text-neutral-700 border border-neutral-300"
-      }`}
+      variant={active ? "contained" : "outlined"}
+      size="small"
+      sx={{ borderRadius: 999, px: 2 }}
     >
       {label}
-    </button>
+    </Button>
   );
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-12">
-      <p className="text-sm font-medium text-indigo-700">
-        <Link href="/dashboard" className="hover:underline">← Dashboard</Link>
-      </p>
-      <h1 className="mt-1 text-3xl font-semibold">Intelligence feed</h1>
-      <p className="mt-2 text-neutral-600">
-        Every meaningful change the scans detected — price moves, new plans,
-        new features, new jobs, and new reviews — across all your competitors.
-        High means worth looking at today: a price increase, a removed plan,
-        or a negative review.
-      </p>
+    <Box>
+      <PageHeader
+        title="Intelligence feed"
+        description="Every meaningful change the scans detected — price moves, new plans, new features, new jobs, and new reviews — across all your competitors. High means worth looking at today: a price increase, a removed plan, or a negative review."
+      />
 
-      <div className="mt-6 flex flex-wrap gap-2">
-        {filterButton("All", significance === "", () => setSignificance(""))}
-        {filterButton("High", significance === "high", () => setSignificance("high"))}
-        {filterButton("Medium", significance === "medium", () => setSignificance("medium"))}
-        {filterButton("Low", significance === "low", () => setSignificance("low"))}
-      </div>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {filterButton("All sources", type === "", () => setType(""))}
-        {filterButton("Pricing", type === "pricing", () => setType("pricing"))}
-        {filterButton("Changelog", type === "changelog", () => setType("changelog"))}
-        {filterButton("Careers", type === "careers", () => setType("careers"))}
-        {filterButton("Reviews", type === "reviews", () => setType("reviews"))}
-      </div>
+      <Card sx={{ mt: 3 }}>
+        <Box sx={{ p: 2.5 }}>
+          <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700 }}>
+            Significance
+          </Typography>
+          <Box sx={{ mt: 1, display: "flex", flexWrap: "wrap", gap: 1 }}>
+            {filterButton("All", significance === "", () => setSignificance(""))}
+            {filterButton("High", significance === "high", () => setSignificance("high"))}
+            {filterButton("Medium", significance === "medium", () => setSignificance("medium"))}
+            {filterButton("Low", significance === "low", () => setSignificance("low"))}
+          </Box>
+          <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 700, display: "block", mt: 2.5 }}>
+            Source
+          </Typography>
+          <Box sx={{ mt: 1, display: "flex", flexWrap: "wrap", gap: 1 }}>
+            {filterButton("All sources", type === "", () => setType(""))}
+            {filterButton("Pricing", type === "pricing", () => setType("pricing"))}
+            {filterButton("Changelog", type === "changelog", () => setType("changelog"))}
+            {filterButton("Careers", type === "careers", () => setType("careers"))}
+            {filterButton("Reviews", type === "reviews", () => setType("reviews"))}
+          </Box>
+        </Box>
+      </Card>
 
       {loadError && (
-        <p className="mt-6 rounded-md bg-red-50 p-3 text-sm text-red-700">{loadError}</p>
+        <Alert severity="error" sx={{ mt: 3 }}>{loadError}</Alert>
       )}
       {loading ? (
-        <p className="mt-6 text-neutral-600">Loading changes…</p>
+        <Box sx={{ mt: 3, display: "flex", alignItems: "center", gap: 1.5, color: "text.secondary" }}>
+          <CircularProgress size={18} /> Loading changes…
+        </Box>
       ) : changes.length === 0 ? (
-        <p className="mt-6 rounded-lg border border-neutral-200 bg-white p-5 text-neutral-700">
-          No changes detected yet. Scan a competitor twice with something
-          changed on its pages in between — a price, a new feature, a new job,
-          or a new review — and it will show up here.
-        </p>
+        <Card sx={{ mt: 3 }}>
+          <EmptyState
+            icon={<ActivityIcon />}
+            title="No changes detected yet"
+            description="Scan a competitor twice with something changed on its pages in between — a price, a new feature, a new job, or a new review — and it will show up here."
+          />
+        </Card>
       ) : (
-        <ul className="mt-6 space-y-3">
+        <motion.ul variants={staggerParent} initial="hidden" animate="show" style={{ margin: 0, marginTop: 24, padding: 0, display: "flex", flexDirection: "column", gap: 12 }}>
           {changes.map((c) => (
             <ChangeCard key={c.id} change={c} showCompetitor />
           ))}
-        </ul>
+        </motion.ul>
       )}
-    </main>
+    </Box>
   );
 }

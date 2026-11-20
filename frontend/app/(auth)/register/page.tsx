@@ -6,6 +6,14 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CircularProgress from "@mui/material/CircularProgress";
+import LinkMui from "@mui/material/Link";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import { registerUser } from "@/services/auth";
 
 const registerSchema = z.object({
@@ -38,46 +46,72 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-6">
-      <h1 className="text-2xl font-semibold">Create your account</h1>
-      <p className="mt-1 text-sm text-neutral-600">
-        Registering also creates your organization workspace. You will be its owner.
-      </p>
-      <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
-        <div>
-          <label htmlFor="name" className="text-sm font-medium">Your name</label>
-          <input id="name" type="text" autoComplete="name" {...register("name")}
-            className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2" />
-          {errors.name && <p className="mt-1 text-sm text-red-700">{errors.name.message}</p>}
-        </div>
-        <div>
-          <label htmlFor="organizationName" className="text-sm font-medium">Organization name (optional)</label>
-          <input id="organizationName" type="text" {...register("organizationName")}
+    <Card>
+      <Box sx={{ p: 4 }}>
+        <Typography variant="h5" component="h1">Create your account</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          Registering also creates your organization workspace. You will be its owner.
+        </Typography>
+        <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ mt: 3, display: "flex", flexDirection: "column", gap: 2.5 }}>
+          <TextField
+            id="name"
+            label="Your name"
+            autoComplete="name"
+            placeholder="Ankit Kumar"
+            fullWidth
+            {...register("name")}
+            error={!!errors.name}
+            helperText={errors.name?.message}
+          />
+          <TextField
+            id="organizationName"
+            label="Organization name (optional)"
             placeholder="e.g. Acme Sales Team"
-            className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2" />
-          {errors.organizationName && <p className="mt-1 text-sm text-red-700">{errors.organizationName.message}</p>}
-        </div>
-        <div>
-          <label htmlFor="email" className="text-sm font-medium">Email</label>
-          <input id="email" type="email" autoComplete="email" {...register("email")}
-            className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2" />
-          {errors.email && <p className="mt-1 text-sm text-red-700">{errors.email.message}</p>}
-        </div>
-        <div>
-          <label htmlFor="password" className="text-sm font-medium">Password (at least 8 characters)</label>
-          <input id="password" type="password" autoComplete="new-password" {...register("password")}
-            className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2" />
-          {errors.password && <p className="mt-1 text-sm text-red-700">{errors.password.message}</p>}
-        </div>
-        {serverError && <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{serverError}</p>}
-        <button type="submit" disabled={isSubmitting}
-          className="w-full rounded-md bg-indigo-700 px-4 py-2 font-medium text-white disabled:opacity-50">
-          {isSubmitting ? "Creating account…" : "Create account"}
-        </button>
-      </form>
-      <p className="mt-4 text-sm text-neutral-600">
-        Already have an account? <Link href="/login" className="font-medium text-indigo-700">Sign in</Link>
-      </p>
-    </div>
+            fullWidth
+            {...register("organizationName")}
+            error={!!errors.organizationName}
+            helperText={errors.organizationName?.message}
+          />
+          <TextField
+            id="email"
+            label="Email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@company.com"
+            fullWidth
+            {...register("email")}
+            error={!!errors.email}
+            helperText={errors.email?.message}
+          />
+          <TextField
+            id="password"
+            label="Password (at least 8 characters)"
+            type="password"
+            autoComplete="new-password"
+            fullWidth
+            {...register("password")}
+            error={!!errors.password}
+            helperText={errors.password?.message}
+          />
+          {serverError && <Alert severity="error">{serverError}</Alert>}
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            variant="contained"
+            size="large"
+            fullWidth
+            startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : undefined}
+          >
+            {isSubmitting ? "Creating account…" : "Create account"}
+          </Button>
+        </Box>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 3, textAlign: "center" }}>
+          Already have an account?{" "}
+          <LinkMui component={Link} href="/login" sx={{ fontWeight: 600 }}>
+            Sign in
+          </LinkMui>
+        </Typography>
+      </Box>
+    </Card>
   );
 }

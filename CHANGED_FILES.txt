@@ -1,45 +1,30 @@
-Competitor Intelligence - Phase 9 - Background jobs (Redis + BullMQ)
-Split pack: Phase 9 only, from Phase 1 to Phase 9.
-Apply in order 1 -> 9. Extract over your project folder,
-choose "Replace the files in the destination" for all.
-Everything else in your project is left as it is -
-this pack contains ONLY this phase's files, nothing deleted.
+Competitor Intelligence - Phase 10 (Notion + Salesforce) - BACKEND FILES ONLY
+This zip has ONLY the backend part of Phase 10 (12 files + README).
+Use it together with the frontend part, which is already in the main
+Phase 10 zip (competitor-intelligence-split-phase10.zip) under frontend/.
+If you already extracted the main Phase 10 zip and only the frontend
+showed up, extract THIS zip over your project folder too - it adds the
+backend folder. Choose "Replace the files in the destination" for all,
+then restart BOTH servers (npm run dev). No npm install needed.
 
-After applying: install the new dependencies and start Redis, then restart both servers:
-  cd backend && npm install
-  redis-server   (or: start Redis however you installed it; port 6379)
-  npm run dev    (backend — the scan worker runs inside it by default)
-  cd ../frontend && npm run dev
-For a separate worker instead: set SCAN_WORKER_IN_PROCESS=false in backend/.env
-and run `npm run worker` in a third terminal.
-Redis is optional — without it the app still starts and manual scans run
-synchronously; scheduled scans are paused until Redis is back.
+What these files do: connect Notion and Salesforce with OAuth (tokens
+encrypted with AES-256-GCM, never stored in plain text), push any
+battlecard or detected change to Notion as a page or to Salesforce as
+a Task. Setup keys go in backend/.env (see the README Phase 10 section).
+Also in here: the Phase 9 worker race fix (no more orphaned scan-job
+records stuck on 'queued').
 
-23 files differ vs Phase 8: NEW (8), MODIFIED (15), DELETED (0)
-
-NEW (8):
-  backend/src/config/redis.ts
-  backend/src/controllers/jobController.ts
-  backend/src/models/ScanJob.ts
-  backend/src/queues/scanQueue.ts
-  backend/src/routes/jobs.ts
-  backend/src/worker.ts
-  backend/src/workers/scanWorker.ts
-  frontend/services/jobs.ts
-
-MODIFIED (15):
-  README.md
+FILES (12 backend files + README):
+  backend/src/controllers/integrationController.ts
+  backend/src/integrations/crypto.ts
+  backend/src/integrations/notionBlocks.ts
+  backend/src/integrations/notionClient.ts
+  backend/src/integrations/salesforceClient.ts
+  backend/src/integrations/salesforcePayload.ts
+  backend/src/models/Integration.ts
+  backend/src/routes/integrations.ts
   backend/.env.example
-  backend/package-lock.json
-  backend/package.json
   backend/src/app.ts
   backend/src/config/env.ts
-  backend/src/controllers/competitorController.ts
-  backend/src/controllers/scanController.ts
-  backend/src/models/Competitor.ts
-  backend/src/routes/competitors.ts
-  backend/src/routes/health.ts
-  backend/src/server.ts
-  frontend/app/(dashboard)/competitors/[id]/page.tsx
-  frontend/services/scans.ts
-  frontend/types/index.ts
+  backend/src/workers/scanWorker.ts
+  README.md

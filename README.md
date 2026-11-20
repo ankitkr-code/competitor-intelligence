@@ -1,7 +1,8 @@
 # Competitor Intelligence Scraper & Battlecard Agent
 
-Phases 1–6 of the PRD (v1.1, section 23) are done. Nothing is faked here —
-every screen shows real data from the backend.
+Phases 1–9 of the PRD (v1.1, section 23) are done, plus the Phase 12 full UI
+redesign — built before Phases 10/11 at the user's request ("build the whole
+ui first"). Nothing is faked here — every screen shows real data from the backend.
 
 - **Phase 1:** project setup and frontend-backend communication.
 - **Phase 2:** database models + register/login with bcrypt and HTTP-only cookies
@@ -592,8 +593,101 @@ in `frontend/`. For a separate worker: set
   monitoringFrequency, and changing the frequency or pausing removes
   and re-creates it — so a competitor can never have two schedules."
 
-## Next step: Phase 10
+## Phase 12: Full UI redesign (finished)
 
-Notion / Salesforce integrations — push battlecards and detected
-changes into the tools sales teams already use, so the intelligence
-leaves this app instead of living only inside it.
+Every page rebuilt with one consistent design system — sidebar navigation
+(Dashboard / Competitors / Intelligence / Battlecards), workspace + user in
+the sidebar footer, shared cards, badges, buttons, and empty states
+(`frontend/components/ui.tsx`, `frontend/components/AppShell.tsx`). Indigo
+accent kept throughout; no new dependencies (Lucide icons, Tailwind, plain
+divs — the 14-day chart is still div-based, no chart library).
+
+- **App shell** — fixed sidebar on desktop, compact top bar with pill nav
+  on mobile. The dashboard layout still guards with `await cookies()`
+  (Next.js 16 fix) and the detail/edit pages still use `useParams()`.
+- **Dashboard** — same Phase 8 sections (stat cards with icons, 14-day
+  chart, most-active competitors, price moves, recent activity, scan
+  health), restyled; sign-out moved into the sidebar.
+- **Competitors** — card grid with monitoring badges, watched-pages count,
+  and View/Edit/Delete; the form is grouped (Company / Pages to watch /
+  Monitoring). Detail page is two-column: pages watched, Scan now, and
+  detected changes on the left; recent scan jobs and AI analysis on the
+  right; snapshot history below.
+- **Intelligence feed** — significance and source filters in a card, change
+  cards with a significance accent border and old → new value chips.
+- **Battlecards** — list with Generated/Not generated status; detail with
+  Generate/Regenerate/Edit/Print-PDF, version viewing, and the 12 PRD
+  sections restyled (AI sections keep their AI-generated badge).
+- **Auth + landing** — brand panel on sign-in/register; the home page is a
+  real landing page that still shows the live backend health check.
+- No backend logic changed in this phase. All numbers still come from the
+  real API; empty states stay honest.
+
+## Phase 10 — Notion / Salesforce integrations
+
+The intelligence leaves the app: a battlecard or a detected change can
+be pushed into the tools sales teams already use, from the battlecard
+page, from a change card in the intelligence feed, or after connecting
+on the Integrations page (`/integrations`, also in the sidebar).
+
+- **Integration model** (`backend/src/models/Integration.ts`) — one
+  connected account per provider per organization. OAuth tokens are
+  stored **encrypted** (AES-256-GCM, `INTEGRATION_ENCRYPTION_KEY` in
+  `backend/.env` — connecting without it is refused with a plain
+  message), never plain text, and no endpoint ever returns them.
+- **Notion** (`backend/src/integrations/notionClient.ts`,
+  `notionBlocks.ts`) — OAuth (public integration, `owner=user`),
+  then push a battlecard as a Notion page (12 sections as blocks,
+  AI sections labelled) or a change as a short page, under a parent
+  page the user picks once — the parent page id is remembered on the
+  integration. The parent page must be shared with the integration in
+  Notion (… → Add connections). Needs `NOTION_CLIENT_ID` /
+  `NOTION_CLIENT_SECRET` / `NOTION_REDIRECT_URI` (create the
+  integration at notion.so/my-integrations).
+- **Salesforce** (`backend/src/integrations/salesforceClient.ts`,
+  `salesforcePayload.ts`) — OAuth web-server flow against a Connected
+  App (`api` + `refresh_token` scopes), then push a battlecard or a
+  change as a **Task** on the rep's own activity timeline (no Account
+  needed). Access tokens expire (~2h); the client refreshes
+  proactively when the stored expiry has passed, and once more on a
+  failed push, before giving up. Needs `SALESFORCE_CLIENT_ID` /
+  `SALESFORCE_CLIENT_SECRET` / `SALESFORCE_REDIRECT_URI` (a free
+  Developer Edition org works for testing).
+- **Endpoints** (`backend/src/routes/integrations.ts`,
+  `backend/src/controllers/integrationController.ts`) —
+  `GET /api/integrations`, `GET /api/integrations/:provider/authorize`
+  (signed `state` JWT, 10 min), `GET /:provider/callback` (public,
+  verifies state, redirects to the frontend Integrations page),
+  `POST /:provider/disconnect`, `POST /notion/push/battlecard/:id`,
+  `POST /notion/push/change/:id`, `POST /salesforce/push/battlecard/:id`,
+  `POST /salesforce/push/change/:id`. Pushes check the resource first
+  (a competitor/change outside your org is a 404 even when nothing is
+  connected), then the connection. No new npm dependencies — both
+  clients are plain fetch, like the Phase 6 OpenAI client.
+- **Frontend** — Integrations settings page (status, workspace,
+  last push, setup steps when unconfigured), push buttons on the
+  battlecard page (Notion parent page id input) and on change cards
+  in the intelligence feed, sidebar link.
+- **Live tests: 42/42** (mock Notion + Salesforce servers on
+  localhost — no real accounts needed): full OAuth for both providers
+  (bad state rejected, token stored encrypted and decrypts back),
+  battlecard + change pushes to both (Notion page carries the pricing
+  plans, Salesforce Task carries the subject + pricing), Salesforce
+  token refresh after forced expiry, org isolation (second org sees
+  nothing connected and gets 404s), disconnect blocks further pushes.
+  A real bug found by the tests and fixed in Phase 9's worker: the
+  worker could pick a manual scan up before `enqueueScan` had written
+  its ScanJob record, leaving an orphaned "queued" record — the worker
+  now waits up to 2s for the manual record to appear before creating
+  one. Frontend production build passes.
+
+What is **NOT** in Phase 10: no automatic push after a scan or a
+battlecard generate (pushing is always a deliberate click), no
+Salesforce Account/Opportunity linking, and no syncing changes back
+from Notion or Salesforce into this app.
+
+## Next step: Phase 11
+
+Testing, security, and deployment — the final phase: the full test
+suite, a security pass (auth, org isolation, rate limits, secrets),
+and production deployment (Vercel + Render + Atlas).
